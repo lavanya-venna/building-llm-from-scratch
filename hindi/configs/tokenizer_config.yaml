@@ -1,0 +1,24 @@
+# Configuration for the from-scratch Hindi SentencePiece tokenizer.
+# hindi/tokenizer/train_tokenizer.py and eval_tokenizer.py both read this file.
+
+model_type: unigram          # Unigram chosen over BPE: better fertility/UNK behavior
+                              # on morphologically rich Devanagari conjuncts (see report).
+character_coverage: 0.9995
+byte_fallback: true          # guarantees near-zero true UNKs; rare tokens fall back to bytes
+
+vocab_size_candidates: [32000, 48000, 64000]
+
+# Selected after running eval_tokenizer.py's fertility/UNK sweep on the held-out
+# val split: 32k/48k/64k gave avg_chars_per_token of 4.261/4.345/4.390 and 0%
+# UNK rate across the board (byte_fallback working). 48k is within 0.05
+# chars/token of the best (64k) while being smaller -- picked over 32k, which
+# was 0.13 chars/token worse (a real fertility gap, not diminishing returns).
+selected_vocab_size: 48000
+
+train_sample:
+  # The full train split is ~4.87M documents (~386M words); capping at 1M
+  # keeps SentencePiece training (esp. Unigram's EM iterations) tractable
+  # while still being a large, representative sample (~1M docs comfortably
+  # covers the corpus's vocabulary distribution).
+  max_lines: 1000000
+  seed: 42              # must match hindi/configs/data_config.yaml's seed for reproducibility

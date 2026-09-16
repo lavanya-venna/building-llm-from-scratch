@@ -1,0 +1,67 @@
+# Configuration for Hindi public-data collection, cleaning, and splitting.
+# All scripts under hindi/data/ read this file so behavior is reproducible
+# from one place instead of hardcoded constants scattered across scripts.
+
+seed: 42
+
+# Overall corpus target. We first estimate with a whitespace word-count
+# proxy (tokenizer doesn't exist yet), then re-verify with exact tokenizer
+# counts once the tokenizer is trained (see hindi/tokenizer/eval_tokenizer.py).
+target_total_tokens: 500000000       # ~500M final tokens
+proxy_tokens_per_word: 1.4           # expected SentencePiece tokens per whitespace word for Hindi
+oversample_factor: 1.3               # pull this much extra vs the raw proxy estimate, as slack
+
+# Public HF sources to stream from, in priority order. `word_budget` is the
+# whitespace-word budget for that source (before the oversample factor is
+# applied in download_public.py). Sources are tried top to bottom; download_public.py
+# stops pulling once target_total_tokens (proxy-estimated) is reached, so lower
+# entries may end up under- or un-used if earlier sources already cover the budget.
+sources:
+  - name: indiccorp_v2
+    hf_path: ai4bharat/IndicCorpV2
+    hf_config: indiccorp_v2
+    split: hin_Deva            # IndicCorpV2 keys language by split, not config
+    text_field: text
+    word_budget: 220000000
+  - name: ai4bharat_hi_subset
+    hf_path: zicsx/ai4bharat-hi-subset
+    hf_config: null
+    split: train
+    text_field: text
+    word_budget: 90000000
+  # Synthetic text, used only as a last-resort fill for whatever the two real
+  # sources above don't cover -- see worklog.md for the overlap note re:
+  # ai4bharat_hi_subset likely being an IndicCorpV2-derived subset.
+  - name: sangraha_synthetic_hin_deva
+    hf_path: ai4bharat/sangraha
+    hf_config: null
+    hf_data_dir: synthetic/hin_Deva
+    split: train
+    text_field: text
+    word_budget: 100000000
+
+# Cleaning / filtering thresholds (hindi/data/clean_normalize.py, lid_filter.py)
+# min_words_per_doc lowered from 20 to 6: IndicCorpV2/ai4bharat_hi_subset are
+# exported one sentence per record. indiccorp_v2's raw file is regrouped into
+# real multi-sentence documents at blank-line boundaries before cleaning (see
+# hindi/data/reconstruct_documents.py) so its docs are typically well above
+# this floor anyway, but ai4bharat_hi_subset has no boundary markers left and
+# stays single-sentence -- 6 words keeps genuine short Hindi sentences while
+# still dropping near-empty fragments/stubs.
+cleaning:
+  min_words_per_doc: 6
+  devanagari_ratio_min: 0.6
+  lid_label: "__label__hi"
+  lid_confidence_min: 0.5
+
+# Near-duplicate detection (hindi/data/dedup.py)
+dedup:
+  shingle_size: 5
+  minhash_num_perm: 128
+  jaccard_threshold: 0.8
+
+# Train/val/test split (hindi/data/make_splits.py)
+splits:
+  train: 0.98
+  val: 0.01
+  test: 0.01
