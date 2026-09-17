@@ -1,11 +1,11 @@
-"""Tests for hindi/data/clean_normalize.py, written before the implementation.
+"""Tests for the cleaning/normalization functions in src/data/data_preprocessor.py.
 
 Each test targets exactly one standalone cleaning function and checks it against
-a small, hand-crafted example so behavior is pinned down before the module exists.
+a small, hand-crafted example so behavior is pinned down independently.
 """
 import unicodedata
 
-from hindi.data.clean_normalize import (
+from src.data.data_preprocessor import (
     fix_mojibake,
     normalize_unicode,
     strip_markup,

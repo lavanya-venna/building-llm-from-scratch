@@ -1,7 +1,15 @@
-"""Tests for hindi/tokenizer/eval_tokenizer.py: fertility and UNK-rate measurement."""
+"""Tests for src/evaluation/tokenizer_eval.py: fertility/UNK-rate measurement,
+vocab selection, and the tokenizer_eval_metrics.md report renderer.
+"""
 import sentencepiece as spm
 
-from hindi.tokenizer.eval_tokenizer import fertility, unk_rate, select_best_vocab
+from src.evaluation.tokenizer_eval import (
+    fertility,
+    unk_rate,
+    select_best_vocab,
+    tokenizer_sweep_table,
+    render_tokenizer_eval_report,
+)
 
 _SAMPLE_TEXTS = ["यह एक हिन्दी वाक्य है।", "भारत एक विशाल देश है।", "मुझे किताबें पढ़ना पसंद है।"] * 30
 
@@ -61,3 +69,29 @@ def test_select_best_vocab_rejects_high_unk_rate_candidates():
     }
     best = select_best_vocab(sweep, tolerance=0.05, max_unk_rate=0.01)
     assert best == 48000
+
+
+def test_tokenizer_sweep_table_flags_selected_vocab():
+    sweep = {
+        32000: {"avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0},
+        48000: {"avg_chars_per_token": 3.6, "avg_tokens_per_word": 1.3, "unk_rate": 0.0},
+    }
+    table = tokenizer_sweep_table(sweep, selected_vocab_size=48000)
+    assert table[0]["vocab_size"] == 32000
+    assert table[0]["selected"] is False
+    assert table[1]["vocab_size"] == 48000
+    assert table[1]["selected"] is True
+
+
+def test_render_tokenizer_eval_report_produces_markdown_with_key_sections():
+    report_data = {
+        "tokenizer_sweep": [
+            {"vocab_size": 32000, "avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0, "selected": True},
+        ],
+        "total_exact_tokens": 495_000_000,
+        "examples": [{"text": "यह एक वाक्य है।", "pieces": ["यह", "एक", "वाक्य", "है", "।"]}],
+    }
+    markdown = render_tokenizer_eval_report(report_data)
+    assert "# Tokenizer Evaluation Metrics" in markdown
+    assert "32000" in markdown
+    assert "495,000,000" in markdown or "495000000" in markdown

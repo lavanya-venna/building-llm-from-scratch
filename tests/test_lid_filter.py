@@ -1,10 +1,10 @@
-"""Tests for hindi/data/lid_filter.py.
+"""Tests for the language-ID filtering functions in src/data/data_preprocessor.py.
 
 The real fasttext lid.176 model is a large binary downloaded at runtime, so unit
 tests use a tiny fake model object with the same `.predict(text)` interface
 fasttext models expose, instead of loading the real one.
 """
-from hindi.data.lid_filter import predict_language, keep_by_language_id
+from src.data.data_preprocessor import predict_language, keep_by_language_id
 
 
 class _FakeFastTextModel:

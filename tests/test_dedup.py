@@ -1,5 +1,5 @@
-"""Tests for hindi/data/dedup.py: exact-hash and near-duplicate (MinHash) dedup."""
-from hindi.data.dedup import (
+"""Tests for src/utils/dedup.py: exact-hash and near-duplicate (MinHash) dedup."""
+from src.utils.dedup import (
     normalize_for_hash,
     exact_hash,
     dedup_exact,

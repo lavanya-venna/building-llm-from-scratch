@@ -91,7 +91,7 @@ def regroup_file(input_path, output_path, source_name):
 
 
 if __name__ == "__main__":
-    raw_dir = os.path.join(os.path.dirname(__file__), "raw")
+    raw_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "raw")
     input_path = os.path.join(raw_dir, "indiccorp_v2.jsonl")
     output_path = os.path.join(raw_dir, "indiccorp_v2.jsonl.regrouped")
     count = regroup_file(input_path, output_path, "indiccorp_v2")

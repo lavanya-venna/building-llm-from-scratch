@@ -2,7 +2,7 @@
 
 Datasets are opened with `streaming=True` so we never materialize a full
 source to disk before sampling -- we pull only as many documents as needed to
-hit each source's configured word-count budget (see hindi/configs/data_config.yaml).
+hit each source's configured word-count budget (see config/data_config.yaml).
 """
 import json
 import os
@@ -10,12 +10,12 @@ import os
 import yaml
 from datasets import load_dataset
 
-_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "configs", "data_config.yaml")
-_RAW_DIR = os.path.join(os.path.dirname(__file__), "raw")
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "config", "data_config.yaml")
+_RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "raw")
 
 
 def load_data_config(config_path=None):
-    """Load hindi/configs/data_config.yaml.
+    """Load config/data_config.yaml.
 
     Centralizing this avoids every script re-implementing its own YAML-loading
     boilerplate and guarantees they all read the same seed/budgets.
@@ -33,7 +33,7 @@ def word_count(text):
     The tokenizer doesn't exist yet at collection time (it's trained on this
     very corpus), so we can't measure exact tokens up front. Word count is a
     fast, tokenizer-free stand-in used only to decide when to stop pulling
-    from a source; exact counts are re-measured later in eval_tokenizer.py.
+    from a source; exact counts are re-measured later in tokenizer_eval.py.
 
     Example: word_count("यह एक वाक्य है") -> 4
     """
@@ -119,7 +119,7 @@ def collect_all_sources(config=None):
     once the overall proxy-estimated token target is met.
 
     Example: collect_all_sources() -> [stats_dict_per_source, ...], and writes
-    hindi/data/raw/<source_name>.jsonl for each source actually pulled from.
+    data/raw/<source_name>.jsonl for each source actually pulled from.
     """
     config = config or load_data_config()
     oversample_factor = config["oversample_factor"]

@@ -317,4 +317,57 @@ Full suite: `pytest hindi/tests/` — 43/43 passing.
   local destruction and won't let the assistant override it -- still
   pending the user running it themselves. Current repo state has a real
   commit (8bff44c) already pushed to `origin/master`, so nothing would
-  actually be lost by this.
+  actually be lost by this. (Still unresolved as of the restructuring
+  below -- `.git` is present on disk and untouched.)
+
+## Project restructuring
+
+- Reorganized the whole repo from the language-scoped `hindi/` layout into
+  a standard `src/`-based layout at the user's request:
+  - `src/utils/{download_public,reconstruct_documents,dedup,run_near_dedup_only}.py`
+    -- moved as-is (path constants updated).
+  - `src/data/data_preprocessor.py` -- merged `clean_normalize.py` +
+    `lid_filter.py` + `run_pipeline.py`'s orchestration + the corpus/cleaning
+    half of `compute_stats.py` (writes `report/dataset_stats.md`).
+  - `src/tokenizer/tokenizer.py` -- `train_tokenizer.py`, moved as-is.
+  - `src/evaluation/tokenizer_eval.py` -- merged `eval_tokenizer.py` + the
+    tokenizer-metrics half of `compute_stats.py` (writes
+    `report/tokenizer_eval_metrics.md`).
+  - `make_splits.py` deleted outright (splits can be regenerated later; the
+    already-generated `data/splits/*.jsonl` files were kept, just relocated).
+  - Data artifacts moved to top-level `data/{raw,processed,splits,visualize,
+    artifacts}/` (dropping the `hindi/` prefix and per-language nesting,
+    since the project is single-language by earlier decision). Configs moved
+    to top-level `config/`. `worklog.md` moved to `docs/worklog.md`.
+  - All `hindi/tests/*.py` moved to top-level `tests/`, imports updated to
+    the new `src.*` paths; `test_train_tokenizer.py`/`test_eval_tokenizer.py`
+    renamed to `test_tokenizer.py`/`test_tokenizer_eval.py`;
+    `test_compute_stats.py` split between `test_dataset_stats.py` and
+    `test_tokenizer_eval.py` to match the new module split;
+    `test_make_splits.py` deleted along with `make_splits.py`.
+  - `report/hindi_dataset_stats.md` renamed to `report/dataset_stats.md`.
+  - Old `hindi/` directory deleted once everything was confirmed moved.
+- **Problem**: while spot-checking that `src.data.data_preprocessor` still
+  resolved its paths correctly, ran `python3 -m src.data.data_preprocessor`
+  directly -- this hits that module's `__main__` block, which re-runs the
+  *entire* collection pipeline (clean+filter, exact dedup, near dedup) from
+  scratch rather than just verifying imports. Caught this immediately and
+  stopped the background task, but it had already partially overwritten
+  `data/processed/ai4bharat_hi_subset.stage1.jsonl` mid-write, truncating it
+  from 1,546,751 lines to 313,808. **Fix**: re-ran just
+  `clean_and_filter_source` for that one file (not the full `__main__`
+  pipeline) -- reproduced the exact original counts (1,546,751 kept / 62,530
+  dropped-clean / 430 dropped-LID out of 1,609,711 total), confirming no data
+  was actually lost, just needed regenerating. `indiccorp_v2.stage1.jsonl`,
+  `deduped.jsonl`, and `near_deduped.jsonl` were untouched throughout (the
+  interrupted run hadn't reached those stages yet). Lesson: verify a
+  module's report/utility function directly (e.g. via `python3 -c`) rather
+  than running the whole module when it has a heavyweight `__main__`.
+- Verification: `pytest tests/` -- 46/46 passing (49 minus the 4
+  `test_make_splits.py` tests, minus/plus adjustments from the
+  `test_compute_stats.py` split). Regenerated both
+  `report/dataset_stats.md` and `report/tokenizer_eval_metrics.md` via
+  their report-generation functions directly (not `__main__`) and confirmed
+  they reproduce the exact same numbers as before the restructuring
+  (4,968,786 final docs, 467,773,861 exact tokens, 48k vocab selected, same
+  per-source/dedup/split breakdowns).

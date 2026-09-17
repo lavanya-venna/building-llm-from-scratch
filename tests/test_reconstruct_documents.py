@@ -1,10 +1,10 @@
-"""Tests for hindi/data/reconstruct_documents.py.
+"""Tests for src/utils/reconstruct_documents.py.
 
 IndicCorpV2's raw export is one sentence/paragraph-fragment per line, with
 blank-text lines marking document boundaries -- these tests pin down how
 those lines get regrouped into real multi-sentence documents.
 """
-from hindi.data.reconstruct_documents import regroup_paragraph_documents
+from src.utils.reconstruct_documents import regroup_paragraph_documents
 
 
 def test_regroup_joins_consecutive_nonblank_lines_into_one_document():

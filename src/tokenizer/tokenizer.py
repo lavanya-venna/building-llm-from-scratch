@@ -11,14 +11,14 @@ import sentencepiece as spm
 import yaml
 
 _TOKENIZER_CONFIG_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "configs", "tokenizer_config.yaml"
+    os.path.dirname(__file__), "..", "..", "config", "tokenizer_config.yaml"
 )
-_ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), "artifacts")
-_TRAIN_SPLIT_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "splits", "train.jsonl")
+_ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "artifacts")
+_TRAIN_SPLIT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "splits", "train.jsonl")
 
 
 def load_tokenizer_config(config_path=None):
-    """Load hindi/configs/tokenizer_config.yaml.
+    """Load config/tokenizer_config.yaml.
 
     Keeps vocab-size candidates, model type, and coverage settings in one
     reviewable place instead of hardcoded in the training script.
@@ -38,8 +38,8 @@ def build_training_sample(train_split_path, output_path, max_lines, seed):
     training fast while still reflecting the corpus's real vocabulary. A fixed
     seed makes the sample reproducible across reruns.
 
-    Example: build_training_sample("hindi/data/splits/train.jsonl", "sample.txt",
-                                    max_lines=8_000_000, seed=42)
+    Example: build_training_sample("data/splits/train.jsonl", "sample.txt",
+                                    max_lines=1_000_000, seed=42)
              -> writes one document's text per line to sample.txt
     """
     with open(train_split_path, encoding="utf-8") as f:
@@ -82,7 +82,7 @@ def train_all_candidates(config=None):
     """Train one SentencePiece model per vocab size in `vocab_size_candidates`.
 
     Example: train_all_candidates() -> trains hindi_unigram_32000/48000/64000
-    into hindi/tokenizer/artifacts/, ready for eval_tokenizer.py's sweep.
+    into data/artifacts/, ready for src.evaluation.tokenizer_eval's sweep.
     """
     config = config or load_tokenizer_config()
     os.makedirs(_ARTIFACTS_DIR, exist_ok=True)

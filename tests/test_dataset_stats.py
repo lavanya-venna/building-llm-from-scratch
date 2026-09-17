@@ -1,11 +1,13 @@
-"""Tests for hindi/data/compute_stats.py: stats aggregation over corpus fixtures."""
-from hindi.data.compute_stats import (
+"""Tests for the dataset-stats-report functions in src/data/data_preprocessor.py
+(the corpus/cleaning half of the old compute_stats.py; tokenizer metrics live
+in src/evaluation/tokenizer_eval.py and are tested in test_tokenizer_eval.py).
+"""
+from src.data.data_preprocessor import (
     count_source_stats,
     dedup_removal_rate,
     split_size_report,
     pipeline_stage_table,
-    tokenizer_sweep_table,
-    render_report,
+    render_dataset_stats_report,
 )
 
 
@@ -53,19 +55,7 @@ def test_pipeline_stage_table_builds_per_source_rows():
     assert rows == [{"source": "wiki", "raw": 100, "kept": 80, "dropped_clean": 15, "dropped_lid": 5}]
 
 
-def test_tokenizer_sweep_table_flags_selected_vocab():
-    sweep = {
-        32000: {"avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0},
-        48000: {"avg_chars_per_token": 3.6, "avg_tokens_per_word": 1.3, "unk_rate": 0.0},
-    }
-    table = tokenizer_sweep_table(sweep, selected_vocab_size=48000)
-    assert table[0]["vocab_size"] == 32000
-    assert table[0]["selected"] is False
-    assert table[1]["vocab_size"] == 48000
-    assert table[1]["selected"] is True
-
-
-def test_render_report_produces_markdown_with_key_sections():
+def test_render_dataset_stats_report_produces_markdown_with_key_sections():
     report_data = {
         "source_stats": {"wiki": {"doc_count": 10, "word_count": 1000}},
         "dedup_removal_pct": 12.5,
@@ -74,15 +64,8 @@ def test_render_report_produces_markdown_with_key_sections():
             "val": {"doc_count": 1, "word_count": 100},
             "test": {"doc_count": 1, "word_count": 100},
         },
-        "tokenizer_sweep": [
-            {"vocab_size": 32000, "avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0, "selected": True},
-        ],
-        "total_exact_tokens": 495_000_000,
-        "examples": [{"text": "यह एक वाक्य है।", "pieces": ["यह", "एक", "वाक्य", "है", "।"]}],
     }
-    markdown = render_report(report_data)
+    markdown = render_dataset_stats_report(report_data)
     assert "# Hindi Dataset Statistics" in markdown
     assert "wiki" in markdown
     assert "12.5" in markdown
-    assert "32000" in markdown
-    assert "495,000,000" in markdown or "495000000" in markdown

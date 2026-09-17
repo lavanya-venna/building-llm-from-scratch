@@ -1,8 +1,9 @@
 # Large data artifacts must never be committed.
-hindi/data/raw/
-hindi/data/processed/
-hindi/data/splits/
-hindi/tokenizer/artifacts/
+data/raw/
+data/processed/
+data/splits/
+data/artifacts/
+data/visualize
 .hf_cache_llm/
 
 # Python

@@ -1,11 +1,11 @@
-"""Tests for hindi/tokenizer/train_tokenizer.py.
+"""Tests for src/tokenizer/tokenizer.py.
 
 Trains tiny real SentencePiece models on small fixture corpora (fast, no
 mocking needed -- SentencePiece training itself is cheap at this scale).
 """
 import os
 
-from hindi.tokenizer.train_tokenizer import build_training_sample, train_sentencepiece_model
+from src.tokenizer.tokenizer import build_training_sample, train_sentencepiece_model
 
 _SAMPLE_HINDI_LINES = [
     "यह एक हिन्दी वाक्य है।",

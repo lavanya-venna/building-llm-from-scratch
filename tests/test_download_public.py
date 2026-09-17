@@ -1,4 +1,4 @@
-"""Tests for hindi/data/download_public.py.
+"""Tests for src/utils/download_public.py.
 
 `datasets.load_dataset` is never called in tests -- a fake streaming iterable
 with the same shape (dicts with a text field) is injected instead, so these
@@ -6,7 +6,7 @@ tests run with no network access.
 """
 import json
 
-from hindi.data.download_public import word_count, collect_source_to_budget
+from src.utils.download_public import word_count, collect_source_to_budget
 
 
 def _fake_stream(n, word_length=10):
