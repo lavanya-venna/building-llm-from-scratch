@@ -1,6 +1,7 @@
 # Configuration for Hindi public-data collection, cleaning, and splitting.
-# All scripts under hindi/data/ read this file so behavior is reproducible
-# from one place instead of hardcoded constants scattered across scripts.
+# src/utils/download_public.py and src/data/data_preprocessor.py both read
+# this file so behavior is reproducible from one place instead of hardcoded
+# constants scattered across scripts.
 
 seed: 42
 

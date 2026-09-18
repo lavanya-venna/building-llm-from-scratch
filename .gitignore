@@ -4,6 +4,7 @@ data/processed/
 data/splits/
 data/artifacts/
 data/visualize
+src/tokenizer/sample_vocabs/
 .hf_cache_llm/
 
 # Python

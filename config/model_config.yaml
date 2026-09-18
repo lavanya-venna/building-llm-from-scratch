@@ -1,0 +1,55 @@
+# Architecture and training hyperparameters for the from-scratch decoder-only
+# Transformer LM. src/model/model.py reads d_model/n_layers/n_heads/d_ff/
+# seq_len/dropout/vocab_size to build DecoderOnlyTransformer; batch_size/
+# learning_rate/max_epochs/warmup_steps are for the future training loop
+# (not implemented this phase) -- kept in the same file so the whole run's
+# hyperparameters live in one reviewable place, matching data_config.yaml/
+# tokenizer_config.yaml.
+
+d_model: 384          # embedding / residual-stream width
+n_layers: 6           # number of stacked decoder Blocks
+n_heads: 6            # d_model / n_heads = 64 = d_k, one head per attention split
+d_ff: 384             # feed-forward hidden width; NOTE this equals d_model rather
+                       # than the conventional 4x expansion -- kept small deliberately
+                       # for this phase's compute/iteration budget
+seq_len: 256           # max context length; also sizes the causal-mask buffer
+dropout: 0.2           # applied ONLY to post-softmax attention weights (see
+                       # MultiHeadCausalAttention) -- not used anywhere else in the model
+vocab_size: null       # deliberately unset: the real value (48000) comes from the
+                       # trained SentencePiece model (see config/tokenizer_config.yaml's
+                       # selected_vocab_size) at model-construction time, not hardcoded
+
+# --- training hyperparameters (consumed by a future training script, not by model.py) ---
+batch_size: 64
+learning_rate: 3e-4    # standard GPT-style Adam LR for a model this size
+max_epochs: 10
+warmup_steps: 500      # linear LR warmup steps before the main schedule takes over
+
+# --- data pipeline config (src/data/dataset.py, src/model/train.py) ---
+# REUSE DECISION: this project already has Phase 1's frozen SentencePiece
+# tokenizer and a frozen, source-stratified 98/1/1 train/val/test split --
+# get_ds() loads those existing artifacts directly instead of combining raw
+# per-source files and re-deriving a fresh split. Fields below are
+# repurposed from the original task spec's literal meaning; see comments.
+
+# Real trained SentencePiece model (Phase 1) -- NOT a HuggingFace
+# `tokenizers` JSON file. get_or_build_tokenizer() loads this via
+# sentencepiece.SentencePieceProcessor, and only trains a new model at this
+# path if it doesn't already exist.
+tokenizer_path: "data/artifacts/hindi_unigram_48000.model"
+
+# Phase 1's existing, frozen train/val/test splits -- NOT raw per-source
+# paths to combine and freshly split. get_ds() reads each file's "text"
+# field directly; it performs no splitting itself.
+dataset_paths:
+  train: "data/splits/train.jsonl"
+  val: "data/splits/val.jsonl"
+  test: "data/splits/test.jsonl"
+
+# Documented but UNUSED by get_ds(): the real split is Phase 1's frozen
+# 98/1/1 source-stratified split, not re-derived here. Kept as config keys
+# per the original spec; changing these values does not change what
+# get_ds() loads.
+train_split: 0.90
+val_split: 0.05
+test_split: 0.05

@@ -1,17 +1,30 @@
-"""Tests for src/evaluation/tokenizer_eval.py: fertility/UNK-rate measurement,
-vocab selection, and the tokenizer_eval_metrics.md report renderer.
+"""Tests for src/evaluation/tokenizer_eval.py: fertility/UNK-rate measurement
+and the JSON sweep report.
 """
+import json
+
 import sentencepiece as spm
 
 from src.evaluation.tokenizer_eval import (
+    evaluates_all_tokenizers_with_diff_vocabs,
     fertility,
     unk_rate,
-    select_best_vocab,
-    tokenizer_sweep_table,
-    render_tokenizer_eval_report,
 )
 
 _SAMPLE_TEXTS = ["यह एक हिन्दी वाक्य है।", "भारत एक विशाल देश है।", "मुझे किताबें पढ़ना पसंद है।"] * 30
+
+_SWEEP_SENTENCES = [
+    "यह एक हिन्दी वाक्य है।",
+    "भारत एक विशाल देश है।",
+    "मुझे किताबें पढ़ना पसंद है।",
+    "आज मौसम बहुत अच्छा है।",
+    "वह स्कूल जा रहा है।",
+    "मुझे संगीत सुनना अच्छा लगता है।",
+    "हमारा देश भारत महान है।",
+    "बच्चे पार्क में खेल रहे हैं।",
+    "यह किताब बहुत रोचक है।",
+    "सूरज पूर्व दिशा से उगता है।",
+] * 30  # enough diversity for unigram/bpe to reliably reach vocab_size 60/65
 
 
 def _train_tiny_model(tmp_path, vocab_size, byte_fallback=True):
@@ -51,47 +64,60 @@ def test_unk_rate_is_zero_with_byte_fallback(tmp_path):
     assert rate == 0.0
 
 
-def test_select_best_vocab_picks_smallest_near_optimal_fertility():
-    sweep = {
-        32000: {"avg_chars_per_token": 3.5, "unk_rate": 0.0},
-        48000: {"avg_chars_per_token": 3.6, "unk_rate": 0.0},
-        64000: {"avg_chars_per_token": 3.61, "unk_rate": 0.0},
+def _write_val_split(path, texts):
+    with open(path, "w", encoding="utf-8") as f:
+        for i, text in enumerate(texts):
+            f.write(json.dumps({"text": text, "source": "val", "doc_id": str(i)}, ensure_ascii=False) + "\n")
+
+
+def _train_sweep_candidates(artifacts_dir, testing_tokenizer_type, vocab_size_candidates):
+    for model_type in testing_tokenizer_type:
+        for vocab_size in vocab_size_candidates:
+            input_path = artifacts_dir / f"train_{model_type}_{vocab_size}.txt"
+            input_path.write_text("\n".join(_SWEEP_SENTENCES), encoding="utf-8")
+            spm.SentencePieceTrainer.train(
+                input=str(input_path),
+                model_prefix=str(artifacts_dir / f"hindi_{model_type}_{vocab_size}"),
+                vocab_size=vocab_size,
+                model_type=model_type,
+                character_coverage=0.9995,
+                byte_fallback=False,
+            )
+
+
+def _sweep_config(tmp_path, testing_tokenizer_type, vocab_size_candidates):
+    artifacts_dir = tmp_path / "sample_vocabs"
+    artifacts_dir.mkdir()
+    _train_sweep_candidates(artifacts_dir, testing_tokenizer_type, vocab_size_candidates)
+
+    val_split_path = tmp_path / "val.jsonl"
+    _write_val_split(val_split_path, _SWEEP_SENTENCES[:10])
+
+    return {
+        "testing_tokenizer_type": testing_tokenizer_type,
+        "vocab_size_candidates": vocab_size_candidates,
+        "artificates_dir": str(artifacts_dir),
+        "val_split_path": str(val_split_path),
+        "report_path": str(tmp_path / "report.json"),
     }
-    # 48000 and 64000 are both near-optimal (within 5% of the best); pick the smallest.
-    best = select_best_vocab(sweep, tolerance=0.05)
-    assert best == 48000
 
 
-def test_select_best_vocab_rejects_high_unk_rate_candidates():
-    sweep = {
-        32000: {"avg_chars_per_token": 3.9, "unk_rate": 0.2},
-        48000: {"avg_chars_per_token": 3.6, "unk_rate": 0.0},
-    }
-    best = select_best_vocab(sweep, tolerance=0.05, max_unk_rate=0.01)
-    assert best == 48000
+def test_evaluates_all_tokenizers_with_diff_vocabs_returns_sweep_keyed_by_vocab_and_type(tmp_path):
+    config = _sweep_config(tmp_path, testing_tokenizer_type=["unigram", "bpe"], vocab_size_candidates=[60, 65])
+
+    sweep = evaluates_all_tokenizers_with_diff_vocabs(config)
+
+    assert set(sweep.keys()) == {(60, "unigram"), (65, "unigram"), (60, "bpe"), (65, "bpe")}
+    for metrics in sweep.values():
+        assert set(metrics.keys()) == {"avg_chars_per_token", "avg_tokens_per_word", "unk_rate"}
 
 
-def test_tokenizer_sweep_table_flags_selected_vocab():
-    sweep = {
-        32000: {"avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0},
-        48000: {"avg_chars_per_token": 3.6, "avg_tokens_per_word": 1.3, "unk_rate": 0.0},
-    }
-    table = tokenizer_sweep_table(sweep, selected_vocab_size=48000)
-    assert table[0]["vocab_size"] == 32000
-    assert table[0]["selected"] is False
-    assert table[1]["vocab_size"] == 48000
-    assert table[1]["selected"] is True
+def test_evaluates_all_tokenizers_with_diff_vocabs_writes_matching_json_report(tmp_path):
+    config = _sweep_config(tmp_path, testing_tokenizer_type=["unigram"], vocab_size_candidates=[60])
 
+    sweep = evaluates_all_tokenizers_with_diff_vocabs(config)
 
-def test_render_tokenizer_eval_report_produces_markdown_with_key_sections():
-    report_data = {
-        "tokenizer_sweep": [
-            {"vocab_size": 32000, "avg_chars_per_token": 3.5, "avg_tokens_per_word": 1.4, "unk_rate": 0.0, "selected": True},
-        ],
-        "total_exact_tokens": 495_000_000,
-        "examples": [{"text": "यह एक वाक्य है।", "pieces": ["यह", "एक", "वाक्य", "है", "।"]}],
-    }
-    markdown = render_tokenizer_eval_report(report_data)
-    assert "# Tokenizer Evaluation Metrics" in markdown
-    assert "32000" in markdown
-    assert "495,000,000" in markdown or "495000000" in markdown
+    with open(config["report_path"], encoding="utf-8") as f:
+        report = json.load(f)
+
+    assert report == {f"{vocab_size}_{model_type}": metrics for (vocab_size, model_type), metrics in sweep.items()}
