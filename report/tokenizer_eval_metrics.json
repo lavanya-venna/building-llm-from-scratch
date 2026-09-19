@@ -1,32 +1,32 @@
 {
   "32000_unigram": {
-    "avg_chars_per_token": 4.275556940027025,
-    "avg_tokens_per_word": 1.2082293511079432,
-    "unk_rate": 0.002102090730905399
+    "avg_chars_per_token": 4.286519935785798,
+    "avg_tokens_per_word": 1.20443027832774,
+    "unk_rate": 0.0022312711730105303
   },
   "48000_unigram": {
-    "avg_chars_per_token": 4.359156015581657,
-    "avg_tokens_per_word": 1.1850581554798096,
-    "unk_rate": 0.0021431924737427993
+    "avg_chars_per_token": 4.368534410280983,
+    "avg_tokens_per_word": 1.18181841195199,
+    "unk_rate": 0.0022739623386768735
   },
   "64000_unigram": {
-    "avg_chars_per_token": 4.4040643237426105,
-    "avg_tokens_per_word": 1.1729741001793386,
-    "unk_rate": 0.0021652717816902653
+    "avg_chars_per_token": 4.412829988309348,
+    "avg_tokens_per_word": 1.1699554283744078,
+    "unk_rate": 0.0022970196084031625
   },
   "32000_bpe": {
-    "avg_chars_per_token": 4.25256463636899,
-    "avg_tokens_per_word": 1.2147618740687098,
-    "unk_rate": 0.0020907864940352865
+    "avg_chars_per_token": 4.262193726579061,
+    "avg_tokens_per_word": 1.2113044902488967,
+    "unk_rate": 0.002218608600535718
   },
   "48000_bpe": {
-    "avg_chars_per_token": 4.34548834922824,
-    "avg_tokens_per_word": 1.188785464858368,
-    "unk_rate": 0.002136472723507302
+    "avg_chars_per_token": 4.3536665808507555,
+    "avg_tokens_per_word": 1.1858543375884845,
+    "unk_rate": 0.00226622315637751
   },
   "64000_bpe": {
-    "avg_chars_per_token": 4.397167049822443,
-    "avg_tokens_per_word": 1.1748139947247425,
-    "unk_rate": 0.0021618807157357074
+    "avg_chars_per_token": 4.404685167143358,
+    "avg_tokens_per_word": 1.172118824252817,
+    "unk_rate": 0.0022927799676341364
   }
 }

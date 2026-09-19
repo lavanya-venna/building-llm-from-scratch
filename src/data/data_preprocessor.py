@@ -44,6 +44,8 @@ _TEMPLATE_RE = re.compile(r"\{\{[^{}]*\}\}")
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WIKI_BRACKET_RE = re.compile(r"\[\[|\]\]")
 _URL_RE = re.compile(r"https?://\S+|www\.\S+")
+_PAREN_RE = re.compile(r" ?\([^()]*\) ?")
+_TRAILING_PUNCTUATION = ".,!?;:।॥"
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +115,40 @@ def strip_urls(text):
     return _URL_RE.sub(" ", text)
 
 
+def strip_non_devanagari_parens(text):
+    """Remove parenthetical asides that contain no Devanagari script.
+
+    Hindi news text frequently glosses a transliterated proper noun or
+    acronym with its English original in parentheses (e.g. "बिहार (Bihar)
+    के मुजफ्फरपुर (Muzaffarpur) में"), or carries a bare numeric aside (a
+    date, a list number). None of that is useful signal for a Hindi tokenizer
+    and it burns vocabulary on noise. A parenthetical is kept only if it has
+    at least one Devanagari character -- covers genuine Hindi asides (e.g.
+    wire-service tags like "(भाषा)") and mixed asides where an English
+    acronym sits inside an otherwise-Hindi remark, without ever dropping a
+    parenthetical solely because it's English.
+
+    Example: strip_non_devanagari_parens("भारत निर्वाचन आयोग (ECI) को सूचना दी")
+             -> "भारत निर्वाचन आयोग को सूचना दी"
+    Example: strip_non_devanagari_parens("सिडनी, (भाषा)। ग्लेन मैक्सवेल ने कहा")
+             -> "सिडनी, (भाषा)। ग्लेन मैक्सवेल ने कहा"
+    Example: strip_non_devanagari_parens("आबकारी अधिनियम की धारा 34(1) व (2) के अपराध")
+             -> "आबकारी अधिनियम की धारा 34 व के अपराध"
+    """
+
+    def _replace(match):
+        span = match.group(0)
+        content = span.strip()[1:-1]
+        if _DEVANAGARI_RANGE.search(content):
+            return span  # has Devanagari -- keep exactly as-is, spaces included
+        if span[0] != " " and span[-1] != " ":
+            return ""  # glued to neighbors on both sides -- nothing to reconcile
+        next_char = match.string[match.end() : match.end() + 1]
+        return "" if next_char and next_char in _TRAILING_PUNCTUATION else " "
+
+    return _PAREN_RE.sub(_replace, text).strip()
+
+
 def devanagari_ratio(text):
     """Return the fraction of characters that are Devanagari script.
 
@@ -161,7 +197,8 @@ def keep_by_length(text, min_words):
 def clean_document(record, min_words, min_devanagari_ratio):
     """Run the full per-document cleaning pipeline.
 
-    Applies mojibake repair, markup stripping, Unicode normalization, then the
+    Applies mojibake repair, markup stripping, URL stripping, non-Devanagari
+    parenthetical stripping, then Unicode normalization, then the
     Devanagari-ratio and length filters, in that order (markup must be
     stripped before length/ratio checks so tag noise doesn't skew them).
     Returns a new record with `pipeline_stage="clean"` set, or None if the
@@ -175,6 +212,7 @@ def clean_document(record, min_words, min_devanagari_ratio):
     text = fix_mojibake(record["text"])
     text = strip_markup(text)
     text = strip_urls(text)
+    text = strip_non_devanagari_parens(text)
     text = normalize_unicode(text)
     text = re.sub(r"[ \t]+", " ", text).strip()
 

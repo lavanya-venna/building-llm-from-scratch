@@ -4,7 +4,8 @@ data/processed/
 data/splits/
 data/artifacts/
 data/visualize
-src/tokenizer/sample_vocabs/
+sample_vocabs/
+src/tokenizer/sample_data
 .hf_cache_llm/
 
 # Python
@@ -14,3 +15,10 @@ __pycache__/
 
 # Env
 *.egg-info/
+
+# Tests
+tests/
+
+# Tokenizers
+src/tokenizer/hindi_tokenizer.model
+src/tokenizer/hindi_tokenizer.vocab
